@@ -53,7 +53,7 @@
 */
 
 #define REWARD_WIN  0.0f
-#define REWARD_LOSS -0.0f
+#define REWARD_LOSS -0.10f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -584,18 +584,20 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
 		*/
+		if(DEBUG){std::cout << "distance to ground: " << gripBBox.min.z << "\n";}
+
+		bool checkGroundContact = gripBBox.min.z <= groundContact || gripBBox.max.z <= groundContact;
 		
-		
-		/*if(checkGroundContact)
+		if(checkGroundContact)
 		{
 						
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
 
-			rewardHistory = None;
-			newReward     = None;
-			endEpisode    = None;
+			rewardHistory = REWARD_LOSS;
+			newReward     = true;
+			endEpisode    = true;
 		}
-		*/
+		
 		
 		/*
 		/ TODO - Issue an interim reward based on the distance to the object
