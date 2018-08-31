@@ -52,7 +52,7 @@
 /
 */
 
-#define REWARD_WIN  0.0f
+#define REWARD_WIN  10.0f
 #define REWARD_LOSS -0.10f
 #define INTERIM_REWARD -0.10f
 
@@ -258,11 +258,9 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 
 	for (unsigned int i = 0; i < contacts->contact_size(); ++i)
 	{
-		if( strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) == 0 )
-			continue;
-
-		if(DEBUG){std::cout << "Collision between[" << contacts->contact(i).collision1()
-			     << "] and [" << contacts->contact(i).collision2() << "]\n";}
+		
+		// if(DEBUG){std::cout << "Collision between[" << contacts->contact(i).collision1()
+		// 	     << "] and [" << contacts->contact(i).collision2() << "]\n";}
 
 	
 		/*
@@ -270,18 +268,19 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
-		/*
-		
+		// if the prop touches anything other than ground, this is true
+		bool collisionCheck = strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) != 0;
 		if (collisionCheck)
 		{
-			rewardHistory = None;
-
-			newReward  = None;
-			endEpisode = None;
+			if(DEBUG){std::cout << "Arm Collision ";}
+			// sleep(50);
+			rewardHistory = REWARD_WIN;
+			newReward  = true;
+			endEpisode = true;
 
 			return;
 		}
-		*/
+		
 		
 	}
 }
