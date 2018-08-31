@@ -361,7 +361,7 @@ bool ArmPlugin::updateAgent()
 	/
 	*/
 	// TODO - Set joint position based on whether action is even or odd.
-	// float joint = ref[action/2] + actionJointDelta;
+	float joint = ref[action/2] + actionJointDelta;
 
 	// limit the joint to the specified range
 	if( joint < JOINT_MIN )
