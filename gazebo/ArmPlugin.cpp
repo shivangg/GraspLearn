@@ -25,6 +25,7 @@
 // Define DQN API Settings
 
 #define INPUT_CHANNELS 3
+#define NUM_ACTIONS DOF*2
 #define ALLOW_RANDOM true
 #define DEBUG_DQN false
 #define GAMMA 0.9f
@@ -39,8 +40,8 @@
 
 #define INPUT_WIDTH   512
 #define INPUT_HEIGHT  512
-#define OPTIMIZER "None"
-#define LEARNING_RATE 0.0f
+#define OPTIMIZER "RMSprop"
+#define LEARNING_RATE 0.01f
 #define REPLAY_MEMORY 10000
 #define BATCH_SIZE 8
 #define USE_LSTM false
@@ -141,7 +142,7 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	*/
 	
 	cameraSub = cameraNode->Subscribe("/gazebo/arm_world/camera/link/camera/image", &ArmPlugin::onCameraMsg, this);
-	
+
 	// Create our node for collision detection
 	collisionNode->Init();
 		
@@ -169,7 +170,10 @@ bool ArmPlugin::createAgent()
 	/
 	*/
 	
-	agent = NULL;
+	agent = dqnAgent::Create(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CHANNELS, NUM_ACTIONS, 
+					  OPTIMIZER, LEARNING_RATE, REPLAY_MEMORY, BATCH_SIZE, 
+					  GAMMA, EPS_START,  EPS_END, EPS_DECAY, 
+					  USE_LSTM, LSTM_SIZE, ALLOW_RANDOM, DEBUG_DQN);
 
 	if( !agent )
 	{
@@ -356,7 +360,8 @@ bool ArmPlugin::updateAgent()
 	/ TODO - Increase or decrease the joint position based on whether the action is even or odd
 	/
 	*/
-	float joint = 0.0; // TODO - Set joint position based on whether action is even or odd.
+	// TODO - Set joint position based on whether action is even or odd.
+	// float joint = ref[action/2] + actionJointDelta;
 
 	// limit the joint to the specified range
 	if( joint < JOINT_MIN )
