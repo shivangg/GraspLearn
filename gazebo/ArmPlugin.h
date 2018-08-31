@@ -15,6 +15,7 @@
 #include <gazebo/common/common.hh>
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
 #include <gazebo/transport/TransportTypes.hh>
 #include <gazebo/msgs/MessageTypes.hh>
 #include <gazebo/common/Time.hh>
@@ -56,14 +57,16 @@ public:
 	void onCameraMsg(ConstImageStampedPtr &_msg);
 	void onCollisionMsg(ConstContactsPtr &contacts);
 
-	static const uint32_t DOF  = 3;	// active degrees of freedom in the arm
+	static const uint32_t DOF  = 2;	// active degrees of freedom in the arm
 
 private:
 	float ref[DOF];			// joint reference positions
 	float vel[DOF];			// joint velocity control
 	float dT[3];				// IK delta theta
 
-	rlAgent* agent;			// AI learning agent instance
+	// rlAgent* agent;			// AI learning agent instance
+	dqnAgent* agent;
+
 	bool     newState;			// true if a new frame needs processed
 	bool     newReward;			// true if a new reward's been issued
 	bool     endEpisode;		// true if this episode is over
@@ -84,11 +87,22 @@ private:
 	float    resetPos[DOF];
 	float    lastGoalDistance;
 	float    avgGoalDelta;
-	int	    successfulGrabs;
-	int	    totalRuns;
-	int      runHistoryIdx;
+	float 	 lastDelta;			//store previous delta
+	int	     successfulGrabs; 	
+	
+	bool 	wasCollision;		// flag set if prop-arm collision occurs(including gripper)
+	int 	totalCollision;		// to record total prop-arm collisions(including gripper)
+
+	bool 	wasGripperCollision;	// flag set if gripper-prop collision occurs
+	int 	gripperCollision;	// to record total gripper-arm collisions
+
+	int	    totalRuns;			// to record total number of episodes
+	
+	int      runHistoryIdx;		
 	int	    runHistoryMax;
 	bool     runHistory[20];
+	
+	std::ofstream outfile;		// to write to file for gnuplots
 
 	physics::ModelPtr model;
 	event::ConnectionPtr updateConnection;
@@ -105,3 +119,4 @@ private:
 
 
 #endif
+
