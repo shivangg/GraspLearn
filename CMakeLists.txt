@@ -17,11 +17,16 @@ set(
 	CUDA_NVCC_FLAGS
 	${CUDA_NVCC_FLAGS}; 
     -O3 
-	-gencode arch=compute_37,code=sm_37
+	# -gencode arch=compute_37,code=sm_37
+	-gencode arch=compute_50,code=sm_50
+	-gencode arch=compute_52,code=sm_52
+	-gencode=arch=compute_52,code=compute_52
 	-gencode arch=compute_53,code=sm_53
 	-gencode arch=compute_60,code=sm_60
 	-gencode arch=compute_61,code=sm_61
 	-gencode arch=compute_62,code=sm_62
+	-gencode=arch=compute_61,code=compute_61
+	-gencode arch=compute_70,code=sm_70	
 )
 
 
