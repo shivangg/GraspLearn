@@ -1,7 +1,9 @@
 /* 
  * Author - Dustin Franklin (Nvidia Jetson Developer)
  * Modified by - Sahil Juneja, Kyle Stewart-Frantz
- *
+ * 
+ * For completing the RL project
+ * Modified by Shivang Tripathi (shivangg)
  */
 
 #include "ArmPlugin.h"
@@ -138,8 +140,8 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	/
 	*/
 	
-	//cameraSub = None;
-
+	cameraSub = cameraNode->Subscribe("/gazebo/arm_world/camera/link/camera/image", &ArmPlugin::onCameraMsg, this);
+	
 	// Create our node for collision detection
 	collisionNode->Init();
 		
@@ -148,7 +150,7 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	/
 	*/
 	
-	//collisionSub = None;
+	collisionSub = collisionNode->Subscribe("/gazebo/arm_world/tube/tube_link/my_contact", &ArmPlugin::onCollisionMsg, this);
 
 	// Listen to the update event. This event is broadcast every simulation iteration.
 	this->updateConnection = event::Events::ConnectWorldUpdateBegin(boost::bind(&ArmPlugin::OnUpdate, this, _1));
