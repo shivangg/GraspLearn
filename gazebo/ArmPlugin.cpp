@@ -54,6 +54,7 @@
 
 #define REWARD_WIN  0.0f
 #define REWARD_LOSS -0.10f
+#define INTERIM_REWARD -0.10f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -69,7 +70,7 @@
 #define ANIMATION_STEPS 1000
 
 // Set Debug Mode
-#define DEBUG false
+#define DEBUG true
 
 // Lock base rotation DOF (Add dof in header file if off)
 #define LOCKBASE true
@@ -232,7 +233,7 @@ void ArmPlugin::onCameraMsg(ConstImageStampedPtr &_msg)
 			return;
 		}
 
-		printf("ArmPlugin - allocated camera img buffer %ix%i  %i bpp  %i bytes\n", width, height, bpp, size);
+		// printf("ArmPlugin - allocated camera img buffer %ix%i  %i bpp  %i bytes\n", width, height, bpp, size);
 		
 		inputBufferSize = size;
 		inputRawWidth   = width;
@@ -242,7 +243,7 @@ void ArmPlugin::onCameraMsg(ConstImageStampedPtr &_msg)
 	memcpy(inputBuffer[0], _msg->image().data().c_str(), inputBufferSize);
 	newState = true;
 
-	if(DEBUG){printf("camera %i x %i  %i bpp  %i bytes\n", width, height, bpp, size);}
+	// if(DEBUG){printf("camera %i x %i  %i bpp  %i bytes\n", width, height, bpp, size);}
 
 }
 
@@ -604,10 +605,12 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/
 		*/ 
 		
-		/*
+		
 		if(!checkGroundContact)
 		{
-			const float distGoal = 0; // compute the reward from distance to the goal
+			 // Distance between goal and arm
+			const float distGoal = BoxDistance(gripBBox, propBBox);
+			const float ALPHA = 0.8;
 
 			if(DEBUG){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
 
@@ -617,13 +620,13 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				const float distDelta  = lastGoalDistance - distGoal;
 
 				// compute the smoothed moving average of the delta of the distance to the goal
-				avgGoalDelta  = 0.0;
-				rewardHistory = None;
-				newReward     = None;	
+				avgGoalDelta  = avgGoalDelta * (1 - ALPHA) + distDelta * ALPHA;
+				rewardHistory = INTERIM_REWARD * avgGoalDelta;
+				newReward     = true;	
 			}
 
 			lastGoalDistance = distGoal;
-		} */
+		} 
 	}
 
 	// issue rewards and train DQN
