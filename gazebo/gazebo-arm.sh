@@ -12,6 +12,8 @@ echo "plugin path $MY_PLUGIN_PATH"
 export GAZEBO_PLUGIN_PATH=$MY_PLUGIN_PATH:$GAZEBO_PLUGIN_PATH
 echo "new GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH"
 
+rm data/*.dat
+
 echo " "
 echo "starting gazebo7 simulator"
 gazebo gazebo-arm.world --verbose
