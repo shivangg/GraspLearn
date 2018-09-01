@@ -41,20 +41,20 @@
 #define INPUT_WIDTH   64
 #define INPUT_HEIGHT  64
 #define OPTIMIZER "RMSprop"
-#define LEARNING_RATE 0.01f
+#define LEARNING_RATE 0.1f
 #define REPLAY_MEMORY 10000
-#define BATCH_SIZE 8
+#define BATCH_SIZE 32
 #define USE_LSTM false
-#define LSTM_SIZE 32
+#define LSTM_SIZE 64
 
 /*
 / TODO - Define Reward Parameters
 /
 */
 
-#define REWARD_WIN  10.0f
+#define REWARD_WIN  0.20f
 #define REWARD_LOSS -0.10f
-#define INTERIM_REWARD -0.10f
+#define INTERIM_REWARD -0.50f
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -616,7 +616,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			
 			if( episodeFrames > 1 )
 			{
-				const float distDelta  = lastGoalDistance - distGoal;
+				const float distDelta  = distGoal - lastGoalDistance;
 
 				// compute the smoothed moving average of the delta of the distance to the goal
 				avgGoalDelta  = avgGoalDelta * (1 - ALPHA) + distDelta * ALPHA;
@@ -626,6 +626,10 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 
 			lastGoalDistance = distGoal;
 		} 
+		// graphing the rewards
+		outfile.open("data/plotRewards.dat", std::ios_base::app);
+		outfile << 50 * totalRuns + episodeFrames << "\t" << rewardHistory << "\n" ;
+		outfile.close();
 	}
 
 	// issue rewards and train DQN
@@ -652,8 +656,14 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				successfulGrabs++;
 
 			totalRuns++;
-			printf("Current Accuracy:  %0.4f (%03u of %03u)  (reward=%+0.2f %s)\n", float(successfulGrabs)/float(totalRuns), successfulGrabs, totalRuns, rewardHistory, (rewardHistory >= REWARD_WIN ? "WIN" : "LOSS"));
+			float accuracy = float(successfulGrabs)/float(totalRuns);
 
+			printf("Current Accuracy:  %0.4f (%03u of %03u)  (reward=%+0.2f %s)\n", accuracy, successfulGrabs, totalRuns, rewardHistory, (rewardHistory >= REWARD_WIN ? "WIN" : "LOSS"));
+
+			// graphing the accuracy
+			outfile.open("data/plot2.dat", std::ios_base::app);
+			outfile << totalRuns << "\t" << accuracy << "\n" ;
+			outfile.close();
 
 			for( uint32_t n=0; n < DOF; n++ )
 				vel[n] = 0.0f;
