@@ -1,10 +1,99 @@
+# Report WriteUp
 
-# Deep RL Arm Manipulation
+This is the writeup for the Deep RL project based on the Nvidia open source project "jetson-reinforcement" developed by [Dustin Franklin]. **The goal of the project is to create a DQN agent and define reward functions to teach a robotic arm to carry out two primary objectives:**
 
-This project is based on the Nvidia open source project "jetson-reinforcement" developed by [Dustin Franklin](https://github.com/dusty-nv). The goal of the project is to create a DQN agent and define reward functions to teach a robotic arm to carry out two primary objectives:
+>
+>1. Have any part of the robot arm touch the object of interest, with at least a 90% accuracy.
+>2. Have only the gripper base of the robot arm touch the object, with at least a 80% accuracy.
+>
 
-1. Have any part of the robot arm touch the object of interest, with at least a 90% accuracy.
-2. Have only the gripper base of the robot arm touch the object, with at least a 80% accuracy.
+Hyperparameters tuning has the most challenging and time taking part of the project.
+
+![Agent touching Prop](images/ReachingGoal.gif)
+
+# Reward Functions
+
+The design of the reward function is the single most important task to accomplish any objective using reinforcement learning. Spending time on designing a good reward function saves a lot of time in later training and tuning the hyperparameters. 
+The agent always tries to optimize the cumulative reward which can sometimes lead to undesired unplanned behavior. This is also called the [Cobra effect].
+
+The distance from the gripper to the goal prop was measured using the `distGoal(gripper, prop)` method.
+Change of distance to goal was called `delta = distGoal - lastGoal`. As evident, negative `delta` implied the gripper was moving towards the goal pose. 
+
+[Exponential moving average] of the delta `avgGoalDelta` was used in the reward function.
+
+```cpp
+alpha = 0.7;
+avgGoalDelta = avgGoalDelta * (1 - alpha) + delta * alpha;
+```
+
+Higher `alpha` value meant lesser weightage to the previous values of distribution compared to the later values.
+
+```cpp
+reward = -C1 * avgGoalDelta
+// -C1 is a negative constant
+```
+Its important to note that this is a positive reward function, i.e., as the gripper moves towards the goal prop, the rewards will be positive.
+
+The important point to note in the case of positive rewards is if the agent can accumulate excessive positive reward without termination _by simply staying in its place_. This does not happen because if the delta stays **0** (position not changing), the rewards will (_smoothly_) become **0**. Thus, training with this reward function will not lead to the robot getting stuck to a position and still accumulate large rewards.
+
+The faster the robotic gripper moves towards the prop, the more the rewards will be. This is because the value of the `delta` will be higher.
+Thus, this reward function incentivizes the fast robot gripper and prop collision. 
+
+# Hyperparameters
+
+The `INPUT_WIDTH` and `INPUT_HEIGHT` was kept equal to the size of the input image, i.e., `64 x 64`.
+
+`Adam` was tried with various parameters but `RMSprop` turned out to be better and was used to achieve the required accuracy for both the tasks.
+
+Learning rate was set high enough to learn fast enough to reduce the number of runs required to achieve the required accuracy. With higher rates, the accuracy was not reached and with lower rates, the number of runs needed increased by order of hundreds. 
+
+The degree of randomness though was set to `true`, was done with a low `EPS_END` of `0.005` to prevent the agent the agent from trying random trajectories every so often, taking more time and runs to reach required accuracy.
+
+Larger batch size leads to convergence to narrow goal cases. This means that the agent will work only for cases in which the prop is in the narrow neighborhood of the prop training region.
+The agent will fail to generalize for the wide range of goal positions that it may encounter. Thus, a smaller batch size was used to generalize for various distance goal instances.
+
+The LSTM size was chosen depending upon the length of sequence that will need to be learnt. Episodes terminated at 100 runs but the agent was able to come to a conclusive result(ground or prop collision) by the 30 - 40 episode. 
+Also, making size a multiple of 32 may actually speed up the training by a small amount. Thus, a value of 64 was used for this task.
+
+
+
+# Results
+
+The first task to achieve was:
+> Getting the robotic arm to touch the goal prop with more than 90% accuracy.
+
+
+The watermarked screenshot of the **task 1 accuracy graph**:
+![Task-1 graph]
+
+It took close to `700 iterations` to reach the `90% accuracy` mark. It reached to `91.67%` by the `1285th iteration`.
+
+![Task-1 terminal]
+
+The task 2 was more refined:
+> Getting only the robotic gripper to touch the goal prop with more than 80% accuracy.
+
+This took more time and runs but was a more meaningful task to accomplish for the agent. It touched the `80% accuracy` mark after around `2400 iterations`. The watermarked screenshot of the **task 2 accuracy graph**:
+
+![Task-2 graph]
+
+By the `2808th iteration`, the accuracy was at `81.23%`
+
+
+
+# Future Work
+
+To improve the current results, 
+
+* Find a better reward function.
+
+In the current reward function, until the very end of episode, the agent is blind as to where it is heading. At the very end, it may encounter a collision with a gripper(high reward) or a ground(high penalty). The reward function should also consider the current distance between the gripper and the ground.
+
+* Bright coloring the gripper and the prop.
+
+This will make it easier for the CNN in DQN algorithm to find the relation of gripper and prop position with the reward received.
+
+DQN is a novel end-to-end reinforcement learning agent that can perform diverse range of tasks with superhuman level of mastery without human intervention. This is a major technical step in the quest of general AI. Paradoxically, the algorithms that power this machine learning are manually designed. Instead, if this learning could to automated, this could open up new opportunities. [Learning to optimize] and [Learning to Learn by Thrun & Pratt, 2012)] was a step in this direction which I would like to implement as they used RL to learn the optimizer.
 
 ## Building from Source (Nvidia Jetson TX2)
 
@@ -23,100 +112,15 @@ $ make
 
 During the `cmake` step, Torch will be installed so it can take awhile. It will download packages and ask you for your `sudo` password during the install.
 
-## Testing the API
 
-To make sure that the reinforcement learners are still functioning properly from C++, a simple example of using the API called [`catch`](samples/catch/catch.cpp) is provided.  Similar in concept to pong, a ball drops from the top of the screen which the agent must catch before the ball reaches the bottom of the screen, by moving it's paddle left or right.
-
-To test the textual [`catch`](samples/catch/catch.cpp) sample, run the following executable from the terminal.  After around 100 episodes or so, the agent should start winning the episodes nearly 100% of the time:  
-
-``` bash
-$ cd RoboND-DeepRL-Project/build/aarch64/bin
-$ ./catch 
-[deepRL]  input_width:    64
-[deepRL]  input_height:   64
-[deepRL]  input_channels: 1
-[deepRL]  num_actions:    3
-[deepRL]  optimizer:      RMSprop
-[deepRL]  learning rate:  0.01
-[deepRL]  replay_memory:  10000
-[deepRL]  batch_size:     32
-[deepRL]  gamma:          0.9
-[deepRL]  epsilon_start:  0.9
-[deepRL]  epsilon_end:    0.05
-[deepRL]  epsilon_decay:  200.0
-[deepRL]  allow_random:   1
-[deepRL]  debug_mode:     0
-[deepRL]  creating DQN model instance
-[deepRL]  DQN model instance created
-[deepRL]  DQN script done init
-[cuda]  cudaAllocMapped 16384 bytes, CPU 0x1020a800000 GPU 0x1020a800000
-[deepRL]  pyTorch THCState  0x0318D490
-[deepRL]  nn.Conv2d() output size = 800
-WON! episode 1
-001 for 001  (1.0000)  
-WON! episode 5
-004 for 005  (0.8000)  
-WON! episode 10
-007 for 010  (0.7000)  
-WON! episode 15
-010 for 015  (0.6667)  
-WON! episode 20
-013 for 020  (0.6500)  13 of last 20  (0.65)  (max=0.65)
-WON! episode 25
-015 for 025  (0.6000)  11 of last 20  (0.55)  (max=0.65)
-LOST episode 30
-018 for 030  (0.6000)  11 of last 20  (0.55)  (max=0.65)
-LOST episode 35
-019 for 035  (0.5429)  09 of last 20  (0.45)  (max=0.65)
-WON! episode 40
-022 for 040  (0.5500)  09 of last 20  (0.45)  (max=0.65)
-LOST episode 45
-024 for 045  (0.5333)  09 of last 20  (0.45)  (max=0.65)
-WON! episode 50
-027 for 050  (0.5400)  09 of last 20  (0.45)  (max=0.65)
-WON! episode 55
-031 for 055  (0.5636)  12 of last 20  (0.60)  (max=0.65)
-LOST episode 60
-034 for 060  (0.5667)  12 of last 20  (0.60)  (max=0.65)
-WON! episode 65
-038 for 065  (0.5846)  14 of last 20  (0.70)  (max=0.70)
-WON! episode 70
-042 for 070  (0.6000)  15 of last 20  (0.75)  (max=0.75)
-LOST episode 75
-045 for 075  (0.6000)  14 of last 20  (0.70)  (max=0.75)
-WON! episode 80
-050 for 080  (0.6250)  16 of last 20  (0.80)  (max=0.80)
-WON! episode 85
-055 for 085  (0.6471)  17 of last 20  (0.85)  (max=0.85)
-WON! episode 90
-059 for 090  (0.6556)  17 of last 20  (0.85)  (max=0.85)
-WON! episode 95
-063 for 095  (0.6632)  18 of last 20  (0.90)  (max=0.90)
-WON! episode 100
-068 for 100  (0.6800)  18 of last 20  (0.90)  (max=0.90)
-WON! episode 105
-073 for 105  (0.6952)  18 of last 20  (0.90)  (max=0.90)
-WON! episode 110
-078 for 110  (0.7091)  19 of last 20  (0.95)  (max=0.95)
-WON! episode 111
-079 for 111  (0.7117)  19 of last 20  (0.95)  (max=0.95)
-WON! episode 112
-080 for 112  (0.7143)  20 of last 20  (1.00)  (max=1.00)
-```
-
-Internally, [`catch`](samples/catch/catch.cpp) is using the [`dqnAgent`](c/dqnAgent.h) API from our C++ library to implement the learning.
+[Task-1 graph]: images/watermarked/successT1-91GraphSept1.png
+[Task-1 terminal]: images/watermarked/successT1-91Sept1.png
+[Task-2 graph]: images/watermarked/successT229Aug.png
+[Task-2 terminal]: images/watermarked/terminalSuccessT229Aug.png
 
 
-## Project Environment
-
-To get started with the project environment, run the following:
-
-``` bash
-$ cd RoboND-DeepRL-Project/build/aarch64/bin
-$ chmod u+x gazebo-arm.sh
-$ ./gazebo-arm.sh
-```
-
-<img src="https://github.com/dusty-nv/jetson-reinforcement/raw/master/docs/images/gazebo_arm.jpg">
-
-The plugins which hook the learning into the simulation are located in the `gazebo/` directory of the repo. The RL agent and the reward functions are to be defined in [`ArmPlugin.cpp`](gazebo/ArmPlugin.cpp).
+[Dustin Franklin]: https://github.com/dusty-nv
+[Cobra effect]: https://en.wikipedia.org/wiki/Cobra_effect
+[Exponential moving average]: https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
+[Learning to Learn by Thrun & Pratt, 2012)]: https://www.google.com/search?tbo=p&tbm=bks&q=isbn:1461555299
+[Learning to optimize]: https://bair.berkeley.edu/blog/2017/09/12/learning-to-optimize-with-rl/
