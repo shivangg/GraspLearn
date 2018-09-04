@@ -44,7 +44,7 @@
 #define LEARNING_RATE 0.1f
 #define REPLAY_MEMORY 10000
 #define BATCH_SIZE 32
-#define USE_LSTM false
+#define USE_LSTM true
 #define LSTM_SIZE 64
 
 /*
@@ -272,9 +272,24 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		bool collisionCheck = strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) != 0;
 		if (collisionCheck)
 		{
+
+			bool gripperCheck = strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0;
+			if (gripperCheck)
+			{
+				if(DEBUG){std::cout << "Gripper Collision ";}
+				// sleep(50);
+				rewardHistory = REWARD_WIN;
+				newReward  = true;
+				endEpisode = true;
+
+				return;
+			}
+
+
+
 			if(DEBUG){std::cout << "Arm Collision ";}
 			// sleep(50);
-			rewardHistory = REWARD_WIN;
+			rewardHistory = REWARD_LOSS;
 			newReward  = true;
 			endEpisode = true;
 
